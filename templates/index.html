@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analizador de Video YOLOv8</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        background: #f5f7fb;
+      }
+      .card {
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      }
+      .status-chip {
+        font-weight: 700;
+      }
+      .file-table td,
+      .file-table th {
+        vertical-align: middle;
+      }
+      #dashboard {
+        min-height: 320px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container py-4">
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+          <h1 class="h3">Analizador de Video</h1>
+          <p class="text-muted mb-0">
+            Elige cámara, video o URL y genera reportes Excel y PDF
+            profesionales.
+          </p>
+          <p class="text-muted mb-0">
+            El sistema identifica bidones con proporción aproximada 3×5 cm
+            durante el análisis.
+          </p>
+        </div>
+        <span class="badge bg-primary py-2 px-3">Python 3.11</span>
+      </div>
+
+      <div class="row gy-4">
+        <div class="col-lg-6">
+          <div class="card p-4">
+            <h2 class="h5 mb-3">Configuración de fuente</h2>
+            <div class="mb-3">
+              <label class="form-label">Fuente de video</label>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="sourceType"
+                  id="sourceWebcam"
+                  value="webcam"
+                  checked
+                />
+                <label class="form-check-label" for="sourceWebcam"
+                  >Cámara web local</label
+                >
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="sourceType"
+                  id="sourceUrl"
+                  value="url"
+                />
+                <label class="form-check-label" for="sourceUrl"
+                  >Cámara web por URL</label
+                >
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="sourceType"
+                  id="sourceUpload"
+                  value="upload"
+                />
+                <label class="form-check-label" for="sourceUpload"
+                  >Video desde PC</label
+                >
+              </div>
+            </div>
+
+            <div class="mb-3" id="urlInput" style="display: none">
+              <label for="sourceValue" class="form-label"
+                >URL de la cámara</label
+              >
+              <input
+                type="url"
+                class="form-control"
+                id="sourceValue"
+                placeholder="https://..."
+              />
+            </div>
+            <div class="mb-3" id="fileInput" style="display: none">
+              <label for="videoFile" class="form-label"
+                >Selecciona un video</label
+              >
+              <input
+                class="form-control"
+                type="file"
+                id="videoFile"
+                accept="video/*"
+              />
+            </div>
+
+            <div class="d-flex gap-2 mb-3">
+              <button id="startButton" class="btn btn-success flex-fill">
+                Iniciar análisis
+              </button>
+              <button id="stopButton" class="btn btn-warning flex-fill">
+                Finalizar análisis
+              </button>
+              <button id="cancelButton" class="btn btn-danger flex-fill">
+                Cancelar todo
+              </button>
+            </div>
+            <div class="d-flex gap-2">
+              <button id="videoStartButton" class="btn btn-primary flex-fill">
+                Iniciar video
+              </button>
+              <button id="videoPauseButton" class="btn btn-secondary flex-fill">
+                Pausar video
+              </button>
+            </div>
+          </div>
+
+          <div class="card p-4 mt-4">
+            <h2 class="h5 mb-3">Vista en vivo del análisis</h2>
+            <div class="text-center">
+              <img
+                id="videoStream"
+                src=""
+                alt="Stream de análisis"
+                class="img-fluid rounded border"
+                style="max-height: 420px; width: auto"
+              />
+            </div>
+          </div>
+
+          <div class="card p-4 mt-4">
+            <h2 class="h5 mb-3">Estado del análisis</h2>
+            <div class="mb-2">
+              <strong>Progreso:</strong>
+              <span id="statusMessage">Lista para analizar</span>
+            </div>
+            <div class="progress mb-3" style="height: 22px">
+              <div
+                id="progressBar"
+                class="progress-bar bg-info"
+                role="progressbar"
+                style="width: 0%"
+              >
+                0%
+              </div>
+            </div>
+            <div class="row text-center">
+              <div class="col-4">
+                <div class="fw-semibold">Estado</div>
+                <div id="statusBadge" class="badge bg-secondary">idle</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-semibold">Iniciado</div>
+                <div id="statusStarted">-</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-semibold">Finalizado</div>
+                <div id="statusFinished">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="card p-4" id="dashboard">
+            <h2 class="h5 mb-3">Dashboard profesional</h2>
+            <div class="row g-3 mb-3" id="summaryCards"></div>
+            <canvas id="chartSummary" height="240"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="row gy-4 mt-3">
+        <div class="col-lg-6">
+          <div class="card p-4">
+            <h2 class="h5 mb-3">Archivos Excel generados</h2>
+            <div id="excelList"></div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card p-4">
+            <h2 class="h5 mb-3">Archivos PDF generados</h2>
+            <div id="pdfList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const sourceRadios = document.querySelectorAll(
+        'input[name="sourceType"]',
+      );
+      const urlInput = document.getElementById("urlInput");
+      const fileInput = document.getElementById("fileInput");
+      const startButton = document.getElementById("startButton");
+      const stopButton = document.getElementById("stopButton");
+      const cancelButton = document.getElementById("cancelButton");
+      const statusMessage = document.getElementById("statusMessage");
+      const progressBar = document.getElementById("progressBar");
+      const statusBadge = document.getElementById("statusBadge");
+      const statusStarted = document.getElementById("statusStarted");
+      const statusFinished = document.getElementById("statusFinished");
+      const summaryCards = document.getElementById("summaryCards");
+      const excelList = document.getElementById("excelList");
+      const pdfList = document.getElementById("pdfList");
+      const chartCanvas = document.getElementById("chartSummary");
+      const videoStream = document.getElementById("videoStream");
+      const videoStartButton = document.getElementById("videoStartButton");
+      const videoPauseButton = document.getElementById("videoPauseButton");
+      let summaryChart;
+
+      function updateSourceUI() {
+        const selected = document.querySelector(
+          'input[name="sourceType"]:checked',
+        ).value;
+        urlInput.style.display = selected === "url" ? "block" : "none";
+        fileInput.style.display = selected === "upload" ? "block" : "none";
+      }
+
+      sourceRadios.forEach((radio) =>
+        radio.addEventListener("change", updateSourceUI),
+      );
+      updateSourceUI();
+
+      async function fetchStatus() {
+        const response = await fetch("/status");
+        const data = await response.json();
+        statusMessage.textContent = data.message;
+        progressBar.style.width = data.progress + "%";
+        progressBar.textContent = data.progress + "%";
+        statusBadge.textContent = data.status;
+        statusBadge.className =
+          "badge " +
+          (data.status === "completado"
+            ? "bg-success"
+            : data.status === "error"
+              ? "bg-danger"
+              : data.status === "analizando"
+                ? "bg-info"
+                : data.status === "cancelado"
+                  ? "bg-warning"
+                  : "bg-secondary");
+        statusStarted.textContent = data.started_at
+          ? new Date(data.started_at).toLocaleString()
+          : "-";
+        statusFinished.textContent = data.finished_at
+          ? new Date(data.finished_at).toLocaleString()
+          : "-";
+        if (data.result) {
+          renderDashboard(
+            data.result.summary,
+            data.result.frames,
+            data.result.source,
+          );
+        }
+      }
+
+      function renderDashboard(summary, frames, source) {
+        summaryCards.innerHTML = "";
+        const totalDetections = summary.reduce(
+          (total, item) => total + Number(item.Conteo),
+          0,
+        );
+        const cardItems = [
+          { label: "Total de detecciones", value: totalDetections },
+          { label: "Número de clases", value: summary.length },
+          { label: "Frames analizados", value: frames },
+          { label: "Fuente", value: source },
+        ];
+        cardItems.forEach((item) => {
+          summaryCards.innerHTML += `
+            <div class="col-6">
+                <div class="p-3 bg-white rounded shadow-sm">
+                    <div class="text-muted">${item.label}</div>
+                    <div class="fs-5 fw-semibold">${item.value}</div>
+                </div>
+            </div>
+        `;
+        });
+
+        const labels = summary.map((item) => item.Clase);
+        const values = summary.map((item) => item.Conteo);
+        if (summaryChart) {
+          summaryChart.data.labels = labels;
+          summaryChart.data.datasets[0].data = values;
+          summaryChart.update();
+        } else {
+          summaryChart = new Chart(chartCanvas, {
+            type: "doughnut",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Conteo por clase",
+                  data: values,
+                  backgroundColor: [
+                    "#0d6efd",
+                    "#6610f2",
+                    "#198754",
+                    "#fd7e14",
+                    "#dc3545",
+                    "#0dcaf0",
+                  ],
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: "bottom" } },
+            },
+          });
+        }
+      }
+
+      async function loadFileList(type, container) {
+        const response = await fetch(`/files/list?type=${type}`);
+        const data = await response.json();
+        if (!data.success) {
+          container.innerHTML = `<div class="alert alert-warning">${data.message}</div>`;
+          return;
+        }
+        if (!data.files.length) {
+          container.innerHTML =
+            '<div class="text-muted">No hay archivos generados aún.</div>';
+          return;
+        }
+        let html =
+          '<div class="table-responsive"><table class="table align-middle file-table"><thead><tr><th>Archivo</th><th>Modificado</th><th>Acciones</th></tr></thead><tbody>';
+        data.files.forEach((file) => {
+          html += `<tr><td>${file.name}</td><td>${file.modified}</td><td>
+            <a class="btn btn-sm btn-primary me-2" href="/files/open/${type}/${encodeURIComponent(file.name)}" target="_blank">Abrir</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/files/download/${type}/${encodeURIComponent(file.name)}">Descargar</a>
+        </td></tr>`;
+        });
+        html += "</tbody></table></div>";
+        container.innerHTML = html;
+      }
+
+      startButton.addEventListener("click", async () => {
+        const sourceType = document.querySelector(
+          'input[name="sourceType"]:checked',
+        ).value;
+        const formData = new FormData();
+        formData.append("sourceType", sourceType);
+        if (sourceType === "url") {
+          formData.append(
+            "sourceValue",
+            document.getElementById("sourceValue").value,
+          );
+        }
+        if (sourceType === "upload") {
+          const file = document.getElementById("videoFile").files[0];
+          if (!file) {
+            alert("Selecciona un video para analizar.");
+            return;
+          }
+          formData.append("videoFile", file);
+        }
+        const response = await fetch("/start-analysis", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
+        if (!data.success) {
+          alert(data.message);
+          return;
+        }
+        statusMessage.textContent = data.message;
+      });
+
+      stopButton.addEventListener("click", async () => {
+        const response = await fetch("/stop-analysis", { method: "POST" });
+        const data = await response.json();
+        alert(data.message);
+      });
+
+      videoStartButton.addEventListener("click", () => {
+        videoStream.src = "/stream";
+      });
+
+      videoPauseButton.addEventListener("click", () => {
+        videoStream.src = "";
+      });
+
+      cancelButton.addEventListener("click", async () => {
+        const response = await fetch("/cancel-all", { method: "POST" });
+        const data = await response.json();
+        alert(data.message);
+      });
+
+      setInterval(async () => {
+        await fetchStatus();
+        await loadFileList("excel", excelList);
+        await loadFileList("pdf", pdfList);
+      }, 5000);
+
+      fetchStatus();
+      loadFileList("excel", excelList);
+      loadFileList("pdf", pdfList);
+    </script>
+  </body>
+</html>

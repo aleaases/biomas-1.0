@@ -1,0 +1,6 @@
+.venv/
+outputs/
+uploads/
+__pycache__/
+*.log
+*.sqlite3
