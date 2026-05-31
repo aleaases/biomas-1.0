@@ -1,0 +1,2 @@
+# Guardar archivos de modelo binario usando el filtro XET cuando esté disponible
+*.pt filter=xet diff=xet merge=xet -text

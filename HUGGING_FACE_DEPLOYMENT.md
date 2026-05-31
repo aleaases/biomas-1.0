@@ -193,4 +193,35 @@ curl -I https://huggingface.co/spaces/USERNAME/biomas-analyzer
 
 ---
 
+## 🔐 Configurar el secreto `HF_TOKEN` en GitHub Actions
+
+1. Entra a tu repositorio en GitHub.
+2. Ve a `Settings` → `Secrets and variables` → `Actions`.
+3. Haz click en **New repository secret**.
+4. Usa estos valores:
+   - **Name:** `HF_TOKEN`
+   - **Value:** tu token de Hugging Face
+
+Para crear el token en Hugging Face:
+
+1. Ve a https://huggingface.co/settings/tokens
+2. Haz click en **New token**.
+3. Asigna un nombre descriptivo (por ejemplo `github-actions-hf-token`).
+4. Selecciona al menos el permiso de **repo** o el permiso específico para Spaces.
+5. Copia el token generado.
+
+El workflow ya usa este secreto así:
+
+```yaml
+- name: Push to Hugging Face Space
+  env:
+    HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  run: |
+    git config user.email "actions@github.com"
+    git config user.name "github-actions[bot]"
+    git push --force space main
+```
+
+---
+
 **¡Listo! Tu aplicación está siendo servida en Hugging Face Spaces con Docker.** 🎉
