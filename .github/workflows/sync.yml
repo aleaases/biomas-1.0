@@ -1,0 +1,21 @@
+name: Sincronizar con Hugging Face
+on:
+  push:
+    branches: [main] # Se ejecuta cada vez que subes cambios a main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Subir a Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git remote add space https://Espartan00:$HF_TOKEN@huggingface.co/spaces/Espartan00/Biomas-Proyect
+          git push --force space main

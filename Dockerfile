@@ -63,3 +63,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Run the application
 # Support both local development and Hugging Face Spaces
 CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-5000} --timeout 120 --workers 1 --threads 2"]
+
