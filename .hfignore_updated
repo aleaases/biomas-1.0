@@ -1,0 +1,44 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build outputs
+outputs/
+uploads/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs and database files
+*.log
+*.sqlite3
+*.db
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Development files
+.env
+.env.local
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker files (optionally exclude if storing in repo)
+# Dockerfile
+# docker-compose.yml
+# .dockerignore
+
+# Temp files
+tmp/
+temp/
+.pytest_cache/
+.coverage
